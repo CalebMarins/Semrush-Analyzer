@@ -37,10 +37,9 @@ ia= st.sidebar.toggle("Detalhamento de IA",disabled=arquivo_carregado)
 detalhamento= st.sidebar.toggle("Visão detalhada de coluna",disabled=arquivo_carregado)
 clusters= st.sidebar.toggle("Agrupamento por clusters",disabled=arquivo_carregado)
 
-
 #Leitura de arquivo upload
 if up_file is not None:
-    extensao=str(up_file.name).split('.')[1]
+    extensao=str(up_file.name).split('.')[-1]
     if extensao =='csv':
         df=pd.read_csv(up_file)
     else:
