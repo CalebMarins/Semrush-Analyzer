@@ -33,9 +33,11 @@ arquivo_carregado = up_file is None
 placeholder_texto= st.sidebar.write('Selecione os filtros')
 resumo= st.sidebar.toggle("Resumo dos dados",disabled=arquivo_carregado, value=True)
 marca= st.sidebar.toggle("Pesquisa por marca",disabled=arquivo_carregado)
+intencao= st.sidebar.toggle("Detalhamento de intenção de busca",disabled=arquivo_carregado)
 ia= st.sidebar.toggle("Detalhamento de IA",disabled=arquivo_carregado)
 detalhamento= st.sidebar.toggle("Visão detalhada de coluna",disabled=arquivo_carregado)
 clusters= st.sidebar.toggle("Agrupamento por clusters",disabled=arquivo_carregado)
+
 
 #Leitura de arquivo upload
 if up_file is not None:
@@ -45,9 +47,10 @@ if up_file is not None:
     else:
         df=pd.read_excel(up_file)
     st.write(f'Arquivo {extensao} lido com sucesso!')
+    if 'data' not in st.session_state:
+        st.session_state['data'] = df
+        
     
-
-
     #--------------------TRATAMENTO DE TABELA--------------------#
     df['Google']=f'https://www.google.com/search?q='+df['Keyword'].str.replace(' ','+')+'&oq='+df['Keyword'].str.replace(' ','+')
     lista_detalhe=[ 'URL','Position','Keyword Intents','ai']
@@ -55,10 +58,9 @@ if up_file is not None:
     df['URL'] = df['URL']+' '
     #Filtro por AI
     df['ai']=(df['Position Type'].str.contains('AI overview')).astype(str)
+    df['marca']='-'
 
-    if resumo:
-        resumo = st.container
-    
+    if resumo:    
     #--------------------BIG NUMBERS E VISÃO INICIAL--------------------#
         st.subheader('Resumo dos dados')
         c1,c2,c3,c4,c5,c6=st.columns(6)
@@ -74,29 +76,31 @@ if up_file is not None:
             st.metric(label="51-100",border=True, value=df[(df['Position']>=51)&(df['Position Type']=='Organic')&(df['Position']<=100)]['Keyword'].count())
         with c6:
             st.metric(label="Recursos de SERP",border=True, value=df[(df['Position Type']!='Organic')]['Keyword'].count())
-        options = st.multiselect("Selecione quais colunas você quer ver",list(df.columns), default=['Keyword', 'Position','Search Volume','URL','Traffic (%)', 'Google' ])
-        tratar_df(df[options])
-
-
+        options = st.multiselect("Selecione quais colunas você quer ver",list(st.session_state['data'].columns), default=['Keyword', 'Position','Search Volume','URL','Traffic (%)', 'Google' ])
+        tratar_df(st.session_state['data'][options])
         st.divider()
     
     #--------------------ANÁLISE DE MARCA--------------------#
-    if marca:
-        st.subheader('Análise de :green[marca]')    
-        text_input = st.text_input("Coloque o regex de marca que você utiliza normalmente (opcional)")
+    if marca:       
+        st.sidebar.divider()
+        text_input = st.sidebar.text_input("Coloque o regex de marca que você utiliza normalmente (opcional)")    
         if text_input:
+            st.subheader('Análise de :green[marca]')
             st.write("Marca: ", text_input)
-            df['marca'] = (df['Keyword'].str.contains(text_input)).astype(str)
-            tratar_df(df.groupby('marca').agg({'Keyword':['count',lambda x:round((x.count()/df['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
+            st.session_state['data']['marca'] = (st.session_state['data']['Keyword'].str.contains(text_input)).astype(str)
+            tratar_df(st.session_state['data'].groupby('marca').agg({'Keyword':['count',lambda x:round((x.count()/df['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
             lista_detalhe.append('marca')
-            tratar_df(df.groupby('marca').agg({'Traffic (%)':'sum', 'Keyword':['count',lambda x: round((x.count()/df['Keyword'].count())*100,2)], 'Position':'mean' }).round({('Position','mean'):2}).rename(columns={'<lambda_0>': 'Porcentagem'}))
+            tratar_df(st.session_state['data'].groupby('marca').agg({'Traffic (%)':'sum', 'Keyword':['count',lambda x: round((x.count()/df['Keyword'].count())*100,2)], 'Position':'mean' }).round({('Position','mean'):2}).rename(columns={'<lambda_0>': 'Porcentagem'}))
         st.divider()
-        #--------------------INTENÇÃO DE BUSCA--------------------#
+        
+    #--------------------INTENÇÃO DE BUSCA--------------------#
+    if intencao:
         st.subheader('Agrupamento por :green[intenção de busca]')
         x=df.groupby('Keyword Intents').agg({'Keyword':['count',lambda x:round((x.count()/df['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'})
         tratar_df(x)
 
         st.divider()
+        
     #--------------------IA--------------------#
     if ia:
         st.subheader('Termos com :green[IA]')
@@ -104,6 +108,7 @@ if up_file is not None:
         df['Possibilidade de AI']=(df['SERP Features by Keyword'].str.contains('AI', na=False)).astype(str)
         tratar_df(df.groupby(['Possibilidade de AI','ai']).agg({'Keyword':['count',lambda x:round((x.count()/df['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
         st.divider()
+        
     #--------------------VISÃO DETALHADA--------------------#
     if detalhamento:
         st.subheader('Visão detalhada por colunas')
@@ -158,4 +163,6 @@ if up_file is not None:
                 st.metric(label="51-100",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=51)&(df['Position Type']=='Organic')&(df['Position']<=100)]['Keyword'].count())
             with c6:
                 st.metric(label="Recursos de SERP",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position Type']!='Organic')]['Keyword'].count())
-            tratar_df(df[df[y].str.contains(selec_detail)])
+            listasem=len(categoria)*-1
+            options = st.multiselect("Selecione quais colunas você quer ver",list(df.columns)[0:listasem], default=['Keyword', 'Position','Search Volume','URL','Traffic (%)', 'Google' ])
+            tratar_df(df[df[y].str.contains(selec_detail)][options])
