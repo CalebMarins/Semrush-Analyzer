@@ -49,7 +49,6 @@ if up_file is not None:
     st.write(f'Arquivo .{extensao} lido com sucesso!')
     if 'data' not in st.session_state:
        st.session_state['data'] = df
-       df_mestre=st.session_state['data'] 
     
     #--------------------TRATAMENTO DE TABELA--------------------#
     df['Google']=f'https://www.google.com/search?q='+df['Keyword'].str.replace(' ','+')+'&oq='+df['Keyword'].str.replace(' ','+')
@@ -116,9 +115,9 @@ if up_file is not None:
     if detalhamento:
         st.subheader('Visão detalhada por colunas')
         x=st.selectbox('Filtros de colunas', lista_detalhe)
-        df_select = df.groupby(x).agg({'Keyword':'count','Traffic (%)':'sum'})
+        df_select = st.session_state['data'].groupby(x).agg({'Keyword':'count','Traffic (%)':'sum'})
         tratar_df(df_select)
-        y=st.selectbox('Filtros de valores', df[x].unique())
+        y=st.selectbox('Filtros de valores', st.session_state['data'][x].unique())
         dff=st.session_state['data'][st.session_state['data'][x]==y][options]
         tratar_df(dff)   
         st.divider()
