@@ -34,18 +34,12 @@ if up_file is not None:
     else:
         df=pd.read_excel(up_file)
     st.write(f'Arquivo {extensao} lido com sucesso!')
-    text_input = st.text_input("Coloque o regex de marca que você utiliza normalmente (opcional)")
+
     #--------------------TRATAMENTO DE TABELA--------------------#
     df['Google']=f'https://www.google.com/search?q='+df['Keyword'].str.replace(' ','+')+'&oq='+df['Keyword'].str.replace(' ','+')
     lista_detalhe=[ 'URL','Position','Keyword Intents','ai']
     df['URL'] = df['URL']+' '
-    #filtros de marca
-    if text_input:
-        st.write("Marca: ", text_input)
-        df['marca'] = (df['Keyword'].str.contains(text_input)).astype(str)
-        tratar_df(df.groupby('marca').agg({'Keyword':['count',lambda x:round((x.count()/df['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
-        lista_detalhe.append('marca')
-        tratar_df(df.groupby('marca').agg({'Traffic (%)':'sum', 'Keyword':['count',lambda x: round((x.count()/df['Keyword'].count())*100,2)], 'Position':'mean' }).round({('Position','mean'):2}).rename(columns={'<lambda_0>': 'Porcentagem'}))
+    
     #Filtro por AI
     df['ai']=(df['Position Type'].str.contains('AI overview')).astype(str)
     st.subheader('Resumo dos dados')
@@ -65,6 +59,17 @@ if up_file is not None:
     options = st.multiselect("Selecione quais colunas você quer ver",list(df.columns), default=['Keyword', 'Position','Search Volume','URL','Traffic (%)', 'Google' ])
     tratar_df(df[options])
     
+    st.divider()
+    
+
+    st.subheader('Análise de :green[marca]')    
+    text_input = st.text_input("Coloque o regex de marca que você utiliza normalmente (opcional)")
+    if text_input:
+        st.write("Marca: ", text_input)
+        df['marca'] = (df['Keyword'].str.contains(text_input)).astype(str)
+        tratar_df(df.groupby('marca').agg({'Keyword':['count',lambda x:round((x.count()/df['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
+        lista_detalhe.append('marca')
+        tratar_df(df.groupby('marca').agg({'Traffic (%)':'sum', 'Keyword':['count',lambda x: round((x.count()/df['Keyword'].count())*100,2)], 'Position':'mean' }).round({('Position','mean'):2}).rename(columns={'<lambda_0>': 'Porcentagem'}))
     st.divider()
     #--------------------Intenção de busca--------------------#
     st.subheader('Agrupamento por :green[intenção de busca]')
@@ -87,8 +92,9 @@ if up_file is not None:
     options=st.multiselect("Selecione quais colunas você quer ver",list(df.columns), default=['Keyword', 'Position','Search Volume','URL','Traffic (%)', 'Google' ])
     dff=df[df[x]==y][options]
     tratar_df(dff)   
+    st.divider()
     
-    #--------------------Agrupamento de palavras chave--------------------#
+    #--------------------Agrupamento por clusters--------------------#
     st.subheader('Agrupamento por :green[Clusters]')
     c1,c2=st.columns(2)
     with c1:
@@ -130,7 +136,3 @@ if up_file is not None:
         with c6:
             st.metric(label="Recursos de SERP",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position Type']!='Organic')]['Keyword'].count())
         tratar_df(df[df[y].str.contains(selec_detail)])
-        
-        
-
-    
