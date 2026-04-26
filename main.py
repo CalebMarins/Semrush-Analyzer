@@ -7,7 +7,10 @@ import numpy as np
 
 st.set_page_config(layout="wide", page_title='Analisador de Páginas - SEMRush', page_icon="🤖")
 
-
+@st.dialog("Cast your vote")
+def vote(item):
+    st.write(f"Why is {item} your favorite?")
+    
 #tratamento de Dataframe no streamlit
 def tratar_df(x):
     df_tratado=st.dataframe(
@@ -69,17 +72,19 @@ if up_file is not None:
     text_input = st.sidebar.text_input("Coloque o regex de marca que você utiliza normalmente (opcional)", value=dominio)
     st.sidebar.divider()
     
+    if text_input:
+        st.session_state['data']['marca'] = (st.session_state['data']['Keyword'].str.contains(text_input)).astype(str)
+        lista_detalhe.append('marca')
+    if not text_input:
+        st.session_state['data']['marca'] = '-'  
+    
     #campos escolhidos em tabela
     options = st.sidebar.multiselect("Selecione quais colunas você quer ver",list(st.session_state['data'].columns), default=['Keyword', 'Position','Search Volume','URL','Traffic (%)', 'Google' ])
     
     
 
     
-    if text_input:
-        st.session_state['data']['marca'] = (st.session_state['data']['Keyword'].str.contains(text_input)).astype(str)
-        lista_detalhe.append('marca')
-    if not text_input:
-        st.session_state['data']['marca'] = '-'  
+
     #--------------------BIG NUMBERS E VISÃO INICIAL--------------------#
     if resumo:    
         st.subheader('Resumo dos dados')
