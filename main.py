@@ -7,10 +7,10 @@ import numpy as np
 
 st.set_page_config(layout="wide", page_title='Analisador de Páginas - SEMRush', page_icon="🤖")
 
-@st.dialog("Cast your vote")
-def vote(item):
-    st.write(f"Why is {item} your favorite?")
-    
+
+
+        
+
 #tratamento de Dataframe no streamlit
 def tratar_df(x):
     df_tratado=st.dataframe(
@@ -22,6 +22,7 @@ def tratar_df(x):
             ),
             'Google':st.column_config.LinkColumn(display_text="Abrir no Google"),
             'URL':st.column_config.LinkColumn(),
+            'Teste':st.column_config.LinkColumn(),
             'Keyword Intents': st.column_config.MultiselectColumn(
                 options=['informational', 'navigational', 'commercial', 'transactional'],
                 color=['#ffa421', '#803df5', '#00c0f2', "#17f748"]
@@ -29,6 +30,9 @@ def tratar_df(x):
         },    
     )
     return df_tratado
+
+
+
 
 
 #--------------------TÍTULO--------------------#
@@ -55,8 +59,8 @@ if up_file is not None:
     else:
         df=pd.read_excel(up_file)
     st.write(f'Arquivo .{extensao} lido com sucesso!')
-    if 'data' not in st.session_state:
-       st.session_state['data'] = df
+    
+    st.session_state['data'] = df
     
     #--------------------TRATAMENTO DE TABELA--------------------#
     df['Google']=f'https://www.google.com/search?q='+df['Keyword'].str.replace(' ','+')+'&oq='+df['Keyword'].str.replace(' ','+')
@@ -65,24 +69,66 @@ if up_file is not None:
     df['URL'] = df['URL']+' '
     #Filtro por AI
     df['ai']=(df['Position Type'].str.contains('AI overview')).astype(str)
-    
+
     
     #buscando o domínio e predefenindo como marca
     dominio=tldextract.extract(str(df['URL'][0])).domain
-    text_input = st.sidebar.text_input("Coloque o regex de marca que você utiliza normalmente (opcional)", value=dominio)
+    brand_input = st.sidebar.text_input("Coloque o regex de marca que você utiliza normalmente (opcional)", value=dominio)
     st.sidebar.divider()
     
-    if text_input:
-        st.session_state['data']['marca'] = (st.session_state['data']['Keyword'].str.contains(text_input)).astype(str)
+    if brand_input:
+        st.session_state['data']['marca'] = (st.session_state['data']['Keyword'].str.contains(brand_input)).astype(str)
         lista_detalhe.append('marca')
-    if not text_input:
-        st.session_state['data']['marca'] = '-'  
+    if not brand_input:
+        st.session_state['data']['marca'] = '-' 
     
     #campos escolhidos em tabela
     options = st.sidebar.multiselect("Selecione quais colunas você quer ver",list(st.session_state['data'].columns), default=['Keyword', 'Position','Search Volume','URL','Traffic (%)', 'Google' ])
     
-    
+    #função para detalhamento de palavra chave
+    def kw_detail(item):
+        termo_selecionado=df[df.index.values==item.index.values]
+        temros_iguais = df[df['Keyword']==item['Keyword'].iloc[0]]
+        st.subheader('Detalhamento de palava chave')
+        st.write(temros_iguais)
+        delta = termo_selecionado['Position'].iloc[0] - termo_selecionado['Previous position'].iloc[0]
+        c1,c2,c3 = st.columns(3)
+        with c1:
+            st.metric(label='Posição', value=termo_selecionado['Position'], delta=delta, delta_color="inverse", border=True)
+        with c2:
+            st.metric(label='Volume de busca', value=termo_selecionado['Search Volume'], border=True, format='localized', height='stretch')
+        with c3:
+            st.metric(label='Tráfego (%)', value=temros_iguais['Traffic (%)'].sum(), border=True, format='localized', height='stretch')
 
+        
+    def df_trato_detail(x):
+        df_tratado=st.dataframe(
+            x,
+            on_select="rerun",
+            column_config={
+                'Trends': st.column_config.BarChartColumn(
+                    y_min=0,
+                    y_max=100,
+                ),      
+                'Google':st.column_config.LinkColumn(display_text="Abrir no Google"),
+                'URL':st.column_config.LinkColumn(),
+                'Teste':st.column_config.LinkColumn(),
+                'Keyword Intents': st.column_config.MultiselectColumn(
+                    options=['informational', 'navigational', 'commercial', 'transactional'],
+                    color=['#ffa421', '#803df5', '#00c0f2', "#17f748"]
+                )
+            },
+            hide_index=True,
+            selection_mode="single-row",
+
+        )
+
+        kw = df_tratado.selection.rows
+        filtered_df = x.iloc[kw]
+        if kw:
+            kw_detail(filtered_df)
+
+        return df_tratado
     
 
     #--------------------BIG NUMBERS E VISÃO INICIAL--------------------#
@@ -90,36 +136,36 @@ if up_file is not None:
         st.subheader('Resumo dos dados')
         c1,c2,c3,c4,c5,c6,c7=st.columns(7)
         with c1:
-            st.metric(label="1-3",border=True, value=df[(df['Position']<=3)&(df['Position Type']=='Organic')]['Keyword'].count())
+            st.metric(label="1-3",border=True, value=df[(df['Position']<=3)&(df['Position Type']=='Organic')]['Keyword'].count(), format='localized')
         with c2:
-            st.metric(label="4-10",border=True, value=df[(df['Position']>=4)&(df['Position Type']=='Organic')&(df['Position']<=10)]['Keyword'].count())
+            st.metric(label="4-10",border=True, value=df[(df['Position']>=4)&(df['Position Type']=='Organic')&(df['Position']<=10)]['Keyword'].count(), format='localized')
         with c3:
-            st.metric(label="11-20",border=True, value=df[(df['Position']>=11)&(df['Position Type']=='Organic')&(df['Position']<=20)]['Keyword'].count())
+            st.metric(label="11-20",border=True, value=df[(df['Position']>=11)&(df['Position Type']=='Organic')&(df['Position']<=20)]['Keyword'].count(), format='localized')
         with c4:
-            st.metric(label="21-50",border=True, value=df[(df['Position']>=21)&(df['Position Type']=='Organic')&(df['Position']<=50)]['Keyword'].count())
+            st.metric(label="21-50",border=True, value=df[(df['Position']>=21)&(df['Position Type']=='Organic')&(df['Position']<=50)]['Keyword'].count(), format='localized')
         with c5:
-            st.metric(label="51-100",border=True, value=df[(df['Position']>=51)&(df['Position Type']=='Organic')&(df['Position']<=100)]['Keyword'].count())
+            st.metric(label="51-100",border=True, value=df[(df['Position']>=51)&(df['Position Type']=='Organic')&(df['Position']<=100)]['Keyword'].count(), format='localized')
         with c6:
-            st.metric(label="Recursos de SERP",border=True, value=df[(df['Position Type']!='Organic')]['Keyword'].count())
+            st.metric(label="Recursos de SERP",border=True, value=df[(df['Position Type']!='Organic')]['Keyword'].count(), format='localized')
         with c7:
-            st.metric(label="Total",border=True, value=df['Keyword'].count())
+            st.metric(label="Total",border=True, value=df['Keyword'].count(), format='localized')
 
-        tratar_df(st.session_state['data'][options])
+        df_trato_detail(st.session_state['data'][options])
         st.divider()
     
     #--------------------ANÁLISE DE MARCA--------------------#
     if marca:       
         st.sidebar.divider()
         st.subheader('Análise de :green[marca]')   
-        if text_input:
+        if brand_input:
             
-            st.markdown(f'Marca: :green-badge[{text_input}]')
+            st.markdown(f'Marca: :green-badge[{brand_input}]')
             
-            st.session_state['data']['marca'] = (st.session_state['data']['Keyword'].str.contains(text_input)).astype(str)
+            st.session_state['data']['marca'] = (st.session_state['data']['Keyword'].str.contains(brand_input)).astype(str)
             tratar_df(st.session_state['data'].groupby('marca').agg({'Keyword':['count',lambda x:round((x.count()/df['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
             lista_detalhe.append('marca')
             tratar_df(st.session_state['data'].groupby('marca').agg({'Traffic (%)':'sum', 'Keyword':['count',lambda x: round((x.count()/df['Keyword'].count())*100,2)], 'Position':'mean' }).round({('Position','mean'):2}).rename(columns={'<lambda_0>': 'Porcentagem'}))
-        if not text_input:
+        if not brand_input:
             st.session_state['data']['marca'] = '-'
             st.markdown(':red[**Preencha o campo na sidebar para que os filtros de marca sejam aplicados**]')
         st.divider()
@@ -149,7 +195,10 @@ if up_file is not None:
         tratar_df(df_select)
         y=st.selectbox('Filtros de valores', st.session_state['data'][x].unique())
         dff=st.session_state['data'][st.session_state['data'][x]==y][options]
-        tratar_df(dff)   
+        if resumo:
+            tratar_df(dff)
+        else:
+            df_trato_detail(dff)   
         st.divider()
     
     #--------------------AGRUPAMENTO POR CLUSTERS--------------------#
@@ -176,7 +225,6 @@ if up_file is not None:
                 else:                
                     x=df[df[i]=='True'].groupby(i).agg({'Keyword':['count',lambda x: round((x.count()/df['Keyword'].count())*100,2)], 'Traffic (%)':'sum','Position':'mean' }).round({('Position','mean'):2}).rename(columns={'<lambda_0>': 'Porcentagem'})
                 lista_df.append(x)
-                st.write()
             df_final = pd.concat(lista_df)
             df_final.index = categoria
             tratar_df(df_final)
@@ -185,16 +233,18 @@ if up_file is not None:
             with c1:
                 st.metric(label="1-3",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']<=3)&(df['Position Type']=='Organic')]['Keyword'].count())
             with c2:
-                st.metric(label="4-10",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=4)&(df['Position Type']=='Organic')&(df['Position']<=10)]['Keyword'].count())
+                st.metric(label="4-10",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=4)&(df['Position Type']=='Organic')&(df['Position']<=10)]['Keyword'].count(), format='localized')
             with c3:
-                st.metric(label="11-20",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=11)&(df['Position Type']=='Organic')&(df['Position']<=20)]['Keyword'].count())
+                st.metric(label="11-20",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=11)&(df['Position Type']=='Organic')&(df['Position']<=20)]['Keyword'].count(), format='localized')
             with c4:
-                st.metric(label="21-50",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=21)&(df['Position Type']=='Organic')&(df['Position']<=50)]['Keyword'].count())
+                st.metric(label="21-50",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=21)&(df['Position Type']=='Organic')&(df['Position']<=50)]['Keyword'].count(), format='localized')
             with c5:
-                st.metric(label="51-100",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=51)&(df['Position Type']=='Organic')&(df['Position']<=100)]['Keyword'].count())
+                st.metric(label="51-100",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position']>=51)&(df['Position Type']=='Organic')&(df['Position']<=100)]['Keyword'].count(), format='localized')
             with c6:
                 st.metric(label="Recursos de SERP",border=True, value=df[(df[y].str.contains(selec_detail))&(df['Position Type']!='Organic')]['Keyword'].count())
             with c7:
-                st.metric(label="Total",border=True, value=df[df[y].str.contains(selec_detail)]['Keyword'].count())
-            
-            tratar_df(st.session_state['data'][st.session_state['data'][y].str.contains(selec_detail)][options])
+                st.metric(label="Total",border=True, value=df[df[y].str.contains(selec_detail)]['Keyword'].count(), format='localized')
+            if resumo or detalhamento:
+                tratar_df(st.session_state['data'][st.session_state['data'][y].str.contains(selec_detail)][options])
+            else:
+                df_trato_detail(st.session_state['data'][st.session_state['data'][y].str.contains(selec_detail)][options])
