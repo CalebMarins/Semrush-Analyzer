@@ -8,12 +8,7 @@ import numpy as np
 import ast
 import calendar
 
-
 st.set_page_config(layout="wide", page_title='Analisador de Páginas - SEMRush', page_icon="🤖")
-
-
-
-        
 
 #tratamento de Dataframe no streamlit
 def tratar_df(x):
@@ -103,7 +98,27 @@ if up_file is not None:
         termo_selecionado=df[df.index.values==item.index.values]
         termos_iguais = df[df['Keyword']==item['Keyword'].iloc[0]]
         st.subheader(f'Detalhamento de palava chave: :green[{termo_selecionado['Keyword'].iloc[0]}]')
-        st.write(termos_iguais)
+        
+        c1,c2,c3,c4=st.columns([1.5,1.5,1,1])
+        with c1:
+            st.markdown(f'**Palavra chave:** :green-badge[{termo_selecionado['Keyword'].iloc[0]}]')
+        with c2:
+            st.markdown(f'**URL:** :green-badge[{termo_selecionado['URL'].iloc[0]}]')
+        with c3:
+            posiciona = 'AI overview' in termo_selecionado['SERP Features by Keyword'].iloc[0]
+            if posiciona:
+                bgg='green-badge'
+            else:
+                bgg='red-badge'
+            st.markdown(f'**Tem AI Overview na SERP?:** :{bgg}[{posiciona}]')
+            
+        with c4:
+            posiciona = (termos_iguais['ai']=='True').any()
+            if posiciona:
+                bgg='green-badge'
+            else:
+                bgg='red-badge'
+            st.markdown(f'**Site posiciona para IA:** :{bgg}[{posiciona}]')
         delta = termo_selecionado['Position'].iloc[0] - termo_selecionado['Previous position'].iloc[0]
         c1,c2 = st.columns(2, vertical_alignment="center")
         with c1:
@@ -124,7 +139,7 @@ if up_file is not None:
                 st.dataframe(df_display, hide_index=True,
                              column_config={'Tipo de posição':st.column_config.MultiselectColumn(
                                  options=["Organic","People also ask","AI overview",'Image pack'],
-                                 color=["#ffa421", "#803df5", "#00c0f2", '#17f748'],
+                                 color=["#ffa421", "#ffa421", "#803df5", '#ffa421'],
                              )})
                 
             with c1_2:
@@ -135,15 +150,28 @@ if up_file is not None:
                             color=['#ffa421', '#803df5', '#00c0f2', "#17f748"])
                             }
                 )
+            opcoes = termo_selecionado['SERP Features by Keyword'].iloc[0].split(',')
+            lm=[]
+            for i in opcoes:
+                if i ==' AI overview': 
+                    lm.append('#803df5')
+                else:
+                    lm.append('#ffa421')
+                
             st.dataframe(termo_selecionado['SERP Features by Keyword'], hide_index=True,
-                            column_config={
-                                'SERP Features by Keyword': st.column_config.MultiselectColumn(
-                                    "SERP Features da palavra chave",
-                                    options=termo_selecionado['SERP Features by Keyword'].iloc[0].split(','),
-                                    color=['#ffa421']
+                        column_config={
+                            'SERP Features by Keyword': st.column_config.MultiselectColumn(
+                                "SERP Features da palavra chave",
+                                options=opcoes,
+                                color=lm
                                 )
                             }
-                )   
+                        )
+            c11,c12 = st.columns(2)
+            with c11:
+                st.link_button("Abrir URL", type='primary', url=termo_selecionado['URL'].iloc[0], width='stretch')
+            with c12:
+                st.link_button("Abrir no Google", type='secondary', url=termo_selecionado['Google'].iloc[0], width='stretch')  
                 
         with c2:
             tt = termo_selecionado['Trends'].apply(ast.literal_eval).iloc[0]
@@ -155,7 +183,7 @@ if up_file is not None:
             fig.update_xaxes(showgrid=False, zeroline=False, dtick=1)
             fig.update_yaxes(showgrid=False, zeroline=False)
             fig.update_layout(yaxis_title=" ", xaxis_title=" ")
-            st.plotly_chart(fig, config = {'scrollZoom': False},height=450)
+            st.plotly_chart(fig, config = {'scrollZoom': False},height=500)
             
         
     def df_trato_detail(x):
