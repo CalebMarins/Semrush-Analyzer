@@ -1,8 +1,12 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.express as px
 import tldextract
 import numpy as np
+import ast
+import calendar
 
 
 st.set_page_config(layout="wide", page_title='Analisador de Páginas - SEMRush', page_icon="🤖")
@@ -51,6 +55,15 @@ detalhamento= st.sidebar.toggle("Visão detalhada de coluna",disabled=arquivo_ca
 clusters= st.sidebar.toggle("Agrupamento por clusters",disabled=arquivo_carregado)
 st.sidebar.divider()
 
+def meses_a_partir_de(mes_inicio):
+    # calendar.month_name[1:] pega [Janeiro, ..., Dezembro]
+    meses = list(calendar.month_name)[1:]
+    
+    # Reorganiza a lista: pega do mês de início até o final, 
+    # e coloca os anteriores no final
+    index = mes_inicio - 1
+    return meses[index + 1:] + meses[:index + 1]
+
 #Leitura de arquivo upload
 if up_file is not None:
     extensao=str(up_file.name).split('.')[-1]
@@ -88,18 +101,62 @@ if up_file is not None:
     #função para detalhamento de palavra chave
     def kw_detail(item):
         termo_selecionado=df[df.index.values==item.index.values]
-        temros_iguais = df[df['Keyword']==item['Keyword'].iloc[0]]
-        st.subheader('Detalhamento de palava chave')
-        st.write(temros_iguais)
+        termos_iguais = df[df['Keyword']==item['Keyword'].iloc[0]]
+        st.subheader(f'Detalhamento de palava chave: :green[{termo_selecionado['Keyword'].iloc[0]}]')
+        st.write(termos_iguais)
         delta = termo_selecionado['Position'].iloc[0] - termo_selecionado['Previous position'].iloc[0]
-        c1,c2,c3 = st.columns(3)
+        c1,c2 = st.columns(2, vertical_alignment="center")
         with c1:
-            st.metric(label='Posição', value=termo_selecionado['Position'], delta=delta, delta_color="inverse", border=True)
+            c1_1,c1_2,c1_3=st.columns(3)
+            with c1_1:
+                st.metric(label='Posição', value=termo_selecionado['Position'], delta=delta, delta_color="inverse", border=True,)
+            with c1_2:
+                st.metric(label='Volume de busca', value=termo_selecionado['Search Volume'], border=True, format='localized', height='stretch')
+            with c1_3:
+                st.metric(label='Tráfego (%)', value=termos_iguais['Traffic (%)'].sum(), border=True, format='localized', height='stretch')
+            
+                     
+              
+            c1_1,c1_2= st.columns(2)
+            with c1_1:
+                valor_unico = ", ".join(termos_iguais['Position Type'].unique())
+                df_display = pd.DataFrame({"Tipo de posição": [valor_unico]})
+                st.dataframe(df_display, hide_index=True,
+                             column_config={'Tipo de posição':st.column_config.MultiselectColumn(
+                                 options=["Organic","People also ask","AI overview",'Image pack'],
+                                 color=["#ffa421", "#803df5", "#00c0f2", '#17f748'],
+                             )})
+                
+            with c1_2:
+                st.dataframe(termo_selecionado['Keyword Intents'], hide_index=True,
+                            column_config={'Keyword Intents': st.column_config.MultiselectColumn(
+                            "Intenção de busca",
+                            options=['informational', 'navigational', 'commercial', 'transactional'],
+                            color=['#ffa421', '#803df5', '#00c0f2', "#17f748"])
+                            }
+                )
+            st.dataframe(termo_selecionado['SERP Features by Keyword'], hide_index=True,
+                            column_config={
+                                'SERP Features by Keyword': st.column_config.MultiselectColumn(
+                                    "SERP Features da palavra chave",
+                                    options=termo_selecionado['SERP Features by Keyword'].iloc[0].split(','),
+                                    color=['#ffa421']
+                                )
+                            }
+                )   
+                
         with c2:
-            st.metric(label='Volume de busca', value=termo_selecionado['Search Volume'], border=True, format='localized', height='stretch')
-        with c3:
-            st.metric(label='Tráfego (%)', value=temros_iguais['Traffic (%)'].sum(), border=True, format='localized', height='stretch')
-
+            tt = termo_selecionado['Trends'].apply(ast.literal_eval).iloc[0]
+            termo_selecionado['Timestamp']= pd.to_datetime(termo_selecionado['Timestamp'])
+            m=termo_selecionado['Timestamp'].dt.month.iloc[0]
+            ala=meses_a_partir_de(m)
+            fig = px.bar(x=ala, y=tt, text=tt)
+            fig.update_traces(hoverinfo='none', hovertemplate=None, marker_cornerradius=15)
+            fig.update_xaxes(showgrid=False, zeroline=False, dtick=1)
+            fig.update_yaxes(showgrid=False, zeroline=False)
+            fig.update_layout(yaxis_title=" ", xaxis_title=" ")
+            st.plotly_chart(fig, config = {'scrollZoom': False},height=450)
+            
         
     def df_trato_detail(x):
         df_tratado=st.dataframe(
@@ -120,7 +177,6 @@ if up_file is not None:
             },
             hide_index=True,
             selection_mode="single-row",
-
         )
 
         kw = df_tratado.selection.rows
