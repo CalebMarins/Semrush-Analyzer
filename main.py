@@ -37,7 +37,7 @@ up_file = st.sidebar.file_uploader('Escolha um arquivo', type=['csv','xlsx'])
 st.sidebar.divider()
 
 #--------------------SIDEBAR--------------------#
-arquivo_carregado = not 'data' in st.session_state
+arquivo_carregado = up_file is None and 'data' not in st.session_state
 placeholder_texto= st.sidebar.write('Selecione os filtros')
 resumo= st.sidebar.toggle("Resumo dos dados",disabled=arquivo_carregado, value=True)
 marca= st.sidebar.toggle("Pesquisa por marca",disabled=arquivo_carregado)
@@ -68,27 +68,29 @@ if up_file is not None:
     
         #--------------------TRATAMENTO DE TABELA--------------------#
     df['Google']=f'https://www.google.com/search?q='+df['Keyword'].str.replace(' ','+')+'&oq='+df['Keyword'].str.replace(' ','+')
-    lista_detalhe=[ 'URL','Position','Keyword Intents','ai']
+    
     #ajuste de url
     df['URL'] = df['URL']+' '
     #Filtro por AI
     df['ai']=(df['Position Type'].str.contains('AI overview')).astype(str)
 
     
+
+    
+    st.session_state['data'] = df
+lista_detalhe=[ 'URL','Position','Keyword Intents','ai']
+if 'data' in st.session_state:       
+    df_import  = st.session_state['data']
     #buscando o domínio e predefenindo como marca
-    dominio=tldextract.extract(str(df['URL'][0])).domain
+    dominio=tldextract.extract(str(df_import['URL'][0])).domain
     brand_input = st.sidebar.text_input("Coloque o regex de marca que você utiliza normalmente (opcional)", value=dominio)
     st.sidebar.divider()
     
     if brand_input:
-        df['marca'] = (df['Keyword'].str.contains(brand_input)).astype(str)
+        df_import['marca'] = (df_import['Keyword'].str.contains(brand_input)).astype(str)
         lista_detalhe.append('marca')
     if not brand_input:
-        df['marca'] = '-' 
-    
-    st.session_state['data'] = df
-if 'data' in st.session_state:       
-    df_import  = st.session_state['data'] 
+        df_import['marca'] = '-' 
     
     #campos escolhidos em tabela
     options = st.sidebar.multiselect("Selecione quais colunas você quer ver",list(df_import.columns), default=['Keyword', 'Position','Search Volume','URL','Traffic (%)', 'Google' ])
