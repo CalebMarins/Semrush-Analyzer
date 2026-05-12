@@ -2,3 +2,4 @@ matplotlib
 tldextract
 openpyxl
 plotly
+matplotlib_venn
