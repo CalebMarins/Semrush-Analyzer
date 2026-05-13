@@ -265,7 +265,7 @@ if 'data' in st.session_state:
                     for i in iinter['Conc'].unique():
                         campos.append(f'Posição {i}')
                         campos.append(f'URL {i}')
-                        campos.append('Google')
+                    campos.append('Google')
                     df_trato_detail(iinter[(iinter['Position']>=i_pos)&(iinter['Position']<=f_pos)][campos])
                     
 
