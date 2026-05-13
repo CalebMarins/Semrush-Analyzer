@@ -19,16 +19,13 @@ clcf = {
 }
 
 #tratamento de Dataframe no streamlit
-def tratar_df(x):
+def tratar_df(x, h='auto'):
     df_tratado=st.dataframe(
         x,
-        column_config=clcf,    
+        column_config=clcf,
+        height=h
     )
     return df_tratado
-
-
-
-
 
 #--------------------TÍTULO--------------------#
 st.title('Analisador de termos 2.000')
@@ -47,7 +44,7 @@ detalhamento= st.sidebar.toggle("Visão detalhada de coluna",disabled=arquivo_ca
 clusters= st.sidebar.toggle("Agrupamento por clusters",disabled=arquivo_carregado)
 st.sidebar.divider()
 
-
+#função para cálculo de meses
 def meses_a_partir_de(mes_inicio):
     # calendar.month_name[1:] pega [Janeiro, ..., Dezembro]
     meses = list(calendar.month_name)[1:]
@@ -72,7 +69,7 @@ if up_file is not None:
     #ajuste de url
     df['URL'] = df['URL']+' '
     #Filtro por AI
-    df['ai']=(df['Position Type'].str.contains('AI overview')).astype(str)
+    df['Posiciona para AI']=(df['Position Type'].str.contains('AI overview')).astype(str)
 
     
 
@@ -115,7 +112,7 @@ if 'data' in st.session_state:
             st.markdown(f'**Tem AI Overview na SERP?:** :{bgg}[{posiciona}]')
             
         with c4:
-            posiciona = (termos_iguais['ai']=='True').any()
+            posiciona = (termos_iguais['Posiciona para AI']=='True').any()
             if posiciona:
                 bgg='green-badge'
             else:
@@ -255,19 +252,21 @@ if 'data' in st.session_state:
     #--------------------IA--------------------#
     if ia:
         st.subheader('Termos com :green[IA]')
+        tratar_df(df_import.groupby('Posiciona para AI').agg({'Keyword':['count',lambda x:round((x.count()/df_import['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
+        c1,c2 = st.columns(2, vertical_alignment='center')
         
-        tratar_df(df_import.groupby('ai').agg({'Keyword':['count',lambda x:round((x.count()/df_import['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
-        df_import['Possibilidade de AI']=(df_import['SERP Features by Keyword'].str.contains('AI', na=False)).astype(str)
-        x=df_import.groupby(['Possibilidade de AI','ai']).agg({'Keyword':['count',lambda x:round((x.count()/df_import['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'})
-        tratar_df(x)
+        df_import['Tem AI Overview na SERP']=(df_import['SERP Features by Keyword'].str.contains('AI', na=False)).astype(str)
+        x=df_import.groupby(['Tem AI Overview na SERP','Posiciona para AI']).agg({'Keyword':['count',lambda x:round((x.count()/df_import['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'})
+        with c1:
+            tratar_df(x, h='content')
         df_plot = x.reset_index()
-        df_plot.loc[df_plot['Possibilidade de AI']=='True','Possibilidade de AI']= 'Tem AI Overview na SERP'
-        df_plot.loc[df_plot['Possibilidade de AI']=='False','Possibilidade de AI']= 'Não tem AI Overview na SERP'
-        df_plot.loc[df_plot['ai']=='True','ai']= 'Posiciona para AI'
-        df_plot.loc[df_plot['ai']=='False','ai']= 'Não posiciona para AI'
+        df_plot.loc[df_plot['Tem AI Overview na SERP']=='True','Tem AI Overview na SERP']= 'Tem AI Overview na SERP'
+        df_plot.loc[df_plot['Tem AI Overview na SERP']=='False','Tem AI Overview na SERP']= 'Não tem AI Overview na SERP'
+        df_plot.loc[df_plot['Posiciona para AI']=='True','Posiciona para AI']= 'Posiciona para AI'
+        df_plot.loc[df_plot['Posiciona para AI']=='False','Posiciona para AI']= 'Não posiciona para AI'
         df_plot.columns = [col[0] if col[1] == '' else col[1] for col in df_plot.columns]
         
-        fig = px.sunburst(df_plot, path=['Possibilidade de AI', 'ai'], values='count')
+        fig = px.sunburst(df_plot, path=['Tem AI Overview na SERP', 'Posiciona para AI'], values='count')
         mapeamento_cores = {
             'Tem AI Overview na SERP':"#43e2a5",
             'Não tem AI Overview na SERP': "#fc5757",
@@ -279,32 +278,12 @@ if 'data' in st.session_state:
         fig.update_traces(level='Tem AI Overview na SERP')
         
         fig.data[0].marker.colors = cores_finais
-        c1,c2 = st.columns(2)
-        with c1:
-            st.plotly_chart(fig)
-        # Pivotar os dados para o formato de matriz (2x2)
-        df_matrix = df_plot.pivot(index='Possibilidade de AI', columns='ai', values='count').fillna(0)
-
-
-        # O Sankey exige mapeamento por índices numéricos de nós:
-        # 0: Possibilidade False, 1: Possibilidade True, 2: AI False, 3: AI True
-        fig = go.Figure(data=[go.Sankey(
-            node = dict(
-              pad = 15, thickness = 20,
-              label = ["Possibilidade: False", "Possibilidade: True", "SERP: False", "SERP: True"],
-              color = ["#ff9999", "#66b3ff", "#d62728", '#2ca02c']
-            ),
-
-            link = dict(
-              source = [0, 1, 1], # Origens
-              target = [2, 2, 3], # Destinos
-              value = [4153, 3050, 269], # Volumes (count)
-              color = ["#ffe6e6", "#e6f2ff", "#e6ffe6"] # Cores dos fluxos
-          ))])
-
-        fig.update_layout(title_text="Fluxo de Volume: Da Possibilidade de AI até a Presença Real na SERP", font_size=12, title_font=dict(color="black", size=14))
+        
         with c2:
-            st.plotly_chart(fig)
+            st.plotly_chart(fig, height='stretch')
+        # Pivotar os dados para o formato de matriz (2x2)
+        df_matrix = df_plot.pivot(index='Tem AI Overview na SERP', columns='Posiciona para AI', values='count').fillna(0)
+
         
 
     #--------------------VISÃO DETALHADA--------------------#
