@@ -312,14 +312,14 @@ if 'data' in st.session_state:
             filter = exclusivo[~exclusivo['Keyword'].str.contains(regex_pattern)]
             c1,c2 = st.columns(2)
             with c1:
-                filtro_termo_aus=st.text_input('Filtre por termos específicos')
+                filtro_termo_aus=st.text_input('Filtre por termos ausentes específicos')
                 if filtro_termo_aus:
                     filter = filter[filter['Keyword'].str.contains(filtro_termo_aus)]
             with c2:
                 opt= list(range(1, 11))
                 opt_plus= list(range(20, 101,10))
                 opt+=opt_plus
-                i_pos, f_pos = st.select_slider("Filtre por posição", options=opt, value=(opt[0], opt[-1]))
+                i_pos, f_pos = st.select_slider("Filtre pela posição", options=opt, value=(opt[0], opt[-1]))
                 filtro_pos_aus= False
                 for i in dict_concorrentes.keys(): 
                     filtro_pos_aus|= (filter[f'Posição {i}']>=i_pos)&(filter[f'Posição {i}']<=f_pos)
