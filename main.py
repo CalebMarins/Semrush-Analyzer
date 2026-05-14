@@ -220,8 +220,21 @@ if 'data' in st.session_state:
             st.metric(label="Recursos de SERP",border=True, value=df_import[(df_import['Position Type']!='Organic')]['Keyword'].count(), format='localized')
         with c7:
             st.metric(label="Total",border=True, value=df_import['Keyword'].count(), format='localized')
+        c1,c2= st.columns(2)
+        with c1:
+            opt= list(range(1, 11))
+            opt_plus= list(range(20, 101,10))
+            opt+=opt_plus
+            i_pos, f_pos = st.select_slider("Filtre por posição", options=opt, value=(opt[0], opt[-1]))
+            filtro_pos= (df_import['Position']>=i_pos)&(df_import['Position']<=f_pos)            
 
-        df_trato_detail(df_import[options])
+        with c2:
+            filtro_termo=st.text_input('Filtre por termos específicos')
+            if filtro_termo:
+                filtro_palavra=(df_import['Keyword'].str.contains(filtro_termo))
+                filtro_pos = (filtro_pos)&(filtro_palavra)
+
+        df_trato_detail(df_import[(filtro_pos)][options])
         st.divider()
     
     #--------------------ANÁLISE DE MARCA--------------------#
@@ -244,8 +257,31 @@ if 'data' in st.session_state:
     #--------------------INTENÇÃO DE BUSCA--------------------#
     if intencao:
         st.subheader('Agrupamento por :green[intenção de busca]')
-        x=df_import.groupby('Keyword Intents').agg({'Keyword':['count',lambda x:round((x.count()/df_import['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}).sort_values(by=('Keyword','count'),ascending=False)
-        tratar_df(x)
+        c1,c2= st.columns(2)
+        with c1:
+            x=df_import.groupby('Keyword Intents').agg({'Keyword':['count',lambda x:round((x.count()/df_import['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}).sort_values(by=('Keyword','count'),ascending=False)
+            tratar_df(x)
+        with c2:
+            lista_intenc= ['informational', 'commercial', 'navigational', 'transactional']
+            dicc_num={}
+            for i in lista_intenc:
+                j=df_import[df_import['Keyword Intents'].str.contains(i)]['Keyword'].count()
+                dicc_num[i]=j
+
+            dicc_num=dict(sorted(dicc_num.items(), key=lambda item: item[1], reverse=True))
+
+            meu_mapa_cores = {
+                "informational": "#ffa421",
+                "navigational": "#803df5",
+                "commercial": "#00c0f2",
+                "transactional": "#17f748",
+            }
+            fig = px.funnel_area(names=dicc_num.keys(),
+                        values=dicc_num.values(),color_discrete_map=meu_mapa_cores, color=dicc_num.keys())
+            
+            fig.update_traces(textinfo="label+percent", )
+            fig.update_layout(showlegend=False, margin=dict(l=0, r=0, t=20, b=60))
+            st.plotly_chart(fig, height='stretch')
 
         st.divider()
         
