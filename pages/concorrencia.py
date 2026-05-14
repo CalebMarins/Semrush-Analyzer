@@ -200,7 +200,7 @@ if 'data' in st.session_state:
             st.sidebar.divider()
         else:
             selec = dominio
-        resumo=st.sidebar.toggle('Resumo dos dados')
+        resumo=st.sidebar.toggle('Resumo dos dados', value=True)
         detail=st.sidebar.toggle('Correlação de termos')
         insights=st.sidebar.toggle('Análise de termos ausentes')
 
