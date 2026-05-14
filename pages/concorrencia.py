@@ -267,8 +267,7 @@ if 'data' in st.session_state:
                 filtro_pos_inter = False
                 for i in dict_concorrentes.keys(): 
                     filtro_pos_inter|= (iinter[f'Posição {i}']>=i_pos)&(iinter[f'Posição {i}']<=f_pos)
-                    
-
+                
             else:
                 filtro_pos_inter = False
                 for i in dict_concorrentes.keys(): 
@@ -276,30 +275,30 @@ if 'data' in st.session_state:
                 filtro_pos_inter|=(iinter['Position']>=i_pos)&(iinter['Position']<=f_pos)
             campos = ['Keyword','Search Volume','Position', 'URL']
             if filtro_termo:
-                grande_filtro = iinter[inter['Keyword'].str.contains(filtro_termo)]
-                textinho = f'Keywords contendo **{filtro_termo.upper()}** em comum com '
+                filtro_termos = (inter['Keyword'].str.contains(filtro_termo))
+                filtro_pos_inter = (filtro_pos_inter)& (filtro_termos)
+                textinho = f'Keywords contendo :blue[**{filtro_termo.upper()}**] em comum com '
             else:
-                grande_filtro = iinter
                 textinho = f'Keywords em comum com '
                              
             if selec != 'Todos':
                 campos = ['Keyword','Search Volume','Position', f'Posição {selec}','URL', f'URL {selec}', 'Google']
-                df_trato_detail(grande_filtro[(filtro_pos_inter)&(iinter['Conc']==selec)][campos])
+                df_trato_detail(iinter[(filtro_pos_inter)&(iinter['Conc']==selec)][campos])
                 
             else:
                 for i in iinter['Conc'].unique():
                     campos.append(f'Posição {i}')
                     campos.append(f'URL {i}')
                 campos.append('Google')
-                df_trato_detail(grande_filtro[filtro_pos_inter][campos])
+                df_trato_detail(iinter[filtro_pos_inter][campos])
                     
             if selec == 'Todos':
                 for i in list(dict_concorrentes.keys()):
                     x=len(iinter[(iinter['Conc']==i)&(filtro_pos_inter)]['Keyword'].unique())
-                    st.metric(f'{textinho} {i}',x, border=True)
+                    st.metric(f'{textinho} :blue[**{i}** nas posições :blue[**{i_pos} a {f_pos}**]',x, border=True)
             else:
                 x=len(iinter[(iinter['Conc']==selec)&(filtro_pos_inter)]['Keyword'].unique())
-                st.metric(f'{textinho} {selec}',x, border=True)
+                st.metric(f'{textinho} {selec} nas posições {i_pos,f_pos}',x, border=True)
             st.divider()
 
         #--------------------ANÁLISE DE TERMOS AUSENTES--------------------#               
@@ -315,6 +314,10 @@ if 'data' in st.session_state:
                 filtro_termo_aus=st.text_input('Filtre por termos ausentes específicos')
                 if filtro_termo_aus:
                     filter = filter[filter['Keyword'].str.contains(filtro_termo_aus)]
+                    texto_metric = f'Termos contendo :blue[**{filtro_termo_aus.upper()}**] em'
+                else:
+                    texto_metric = f'Termos exclusivos em '
+
             with c2:
                 opt= list(range(1, 11))
                 opt_plus= list(range(20, 101,10))
@@ -334,3 +337,8 @@ if 'data' in st.session_state:
                 
             else:
                 tratar_df(filter[filtro_pos_aus][(filter['Conc']==selec)])
+
+            for i in dict_concorrentes.keys():
+                x=len(filter[(filter['Conc']==i)&(filtro_pos_aus)]['Keyword'].unique())
+                st.metric(f'{texto_metric} :blue[**{i}**] nas posições :blue[**{i_pos} a {f_pos}**]',x, border=True)
+            
