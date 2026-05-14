@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib_venn import venn2,venn3
 import plotly.express as px
 import tldextract
 
@@ -51,6 +50,12 @@ if 'data' in st.session_state:
     df_up= st.session_state['data']
     keywords_cliente = set(df_up['Keyword'])
     dados_confronto = {"TIM": keywords_cliente}
+    cliente = tldextract.extract(str(df_up['URL'][0])).domain
+    sub=tldextract.extract(str(df_up['URL'][0])).subdomain
+    fi=tldextract.extract(str(df_up['URL'][0])).suffix
+    cliente+='.'+fi
+    if len(sub)>1:
+        cliente=sub+'.'+cliente
 
     #--------------------FUNÇÃO PARA DETALHAR KW--------------------#
     def kw_detail(item):
@@ -60,7 +65,7 @@ if 'data' in st.session_state:
         with c1:
             c1_1,c1_2,c1_3=st.columns(3)
             with c1_1:
-                st.metric(label=f'Posição', value=termo_selecionado['Position'].min(), delta_color="inverse", border=True, height='stretch')
+                st.metric(label=f'Posição {cliente}', value=termo_selecionado['Position'].min(), delta_color="inverse", border=True, height='stretch')
             with c1_2:
                 if selec =='Todos':
                     xx=list(iinter['Conc'].unique())
@@ -193,45 +198,38 @@ if 'data' in st.session_state:
             lista_conc.append('Todos')
             selec=st.sidebar.selectbox('Selecione o concorrente para ver no detalhe',lista_conc)
             st.sidebar.divider()
+        else:
+            selec = dominio
         resumo=st.sidebar.toggle('Resumo dos dados')
         detail=st.sidebar.toggle('Correlação de termos')
         insights=st.sidebar.toggle('Análise de termos ausentes')
 
         #--------------------RESUMO DOS DADOS--------------------#
         if resumo:
-            if len(dict_concorrentes.keys())>1:
-                if selec=='Todos':
-                    for i in df_melt['Concorrente'].unique():
-                        st.subheader(i)
-                        c1,c2,c3 = st.columns(3)
-                        x=df_melt[(df_melt['Concorrente']==i)&(df_melt['Tipo']=='Keywords em comum')]['Quantidade']
-                        c1.metric(f'Keywords em comum - {i}',x, border=True)
-                        x=df_melt[(df_melt['Concorrente']==i)&(df_melt['Tipo']=='Exclusivas concorrente')]['Quantidade']
-                        c2.metric(f'Exclusivas concorrente - {i}',x, border=True)
-                        x=df_melt[(df_melt['Concorrente']==i)&(df_melt['Tipo']=='Exclusivas cliente')]['Quantidade']
-                        c3.metric(f'Exclusivas cliente',x, border=True)
-                        plot_sel=df_melt 
-                else:
-                    st.subheader(selec)
-                    plot_sel=df_melt[df_melt['Concorrente']==selec]
+            st.markdown('## Resumo dos dados')
+            
+            if selec=='Todos':
+                for i in df_melt['Concorrente'].unique():
+                    st.markdown(f'##### {i}')
                     c1,c2,c3 = st.columns(3)
-                    x=df_melt[(df_melt['Concorrente']==selec)&(df_melt['Tipo']=='Keywords em comum')]['Quantidade']
-                    c1.metric(f'Keywords em comum - {selec}',x, border=True)
-                    x=df_melt[(df_melt['Concorrente']==selec)&(df_melt['Tipo']=='Exclusivas concorrente')]['Quantidade']
-                    c2.metric(f'Exclusivas concorrente - {selec}',x, border=True)
-                    x=df_melt[(df_melt['Concorrente']==selec)&(df_melt['Tipo']=='Exclusivas cliente')]['Quantidade']
-                    c3.metric(f'Exclusivas cliente',x, border=True)
+                    x=df_melt[(df_melt['Concorrente']==i)&(df_melt['Tipo']=='Keywords em comum')]['Quantidade']
+                    c1.metric(f'Keywords em comum - {i}',x, border=True)
+                    x=df_melt[(df_melt['Concorrente']==i)&(df_melt['Tipo']=='Exclusivas concorrente')]['Quantidade']
+                    c2.metric(f'Exclusivas concorrente - {i}',x, border=True)
+                    x=df_melt[(df_melt['Concorrente']==i)&(df_melt['Tipo']=='Exclusivas cliente')]['Quantidade']
+                    c3.metric(f'Exclusivas {cliente}',x, border=True)
+                    plot_sel=df_melt 
             else:
-                selec = dominio
-                st.subheader(dominio)
+                st.markdown(f'##### {selec}')
+                plot_sel=df_melt[df_melt['Concorrente']==selec]
                 c1,c2,c3 = st.columns(3)
-                x=df_melt[(df_melt['Concorrente']==dominio)&(df_melt['Tipo']=='Keywords em comum')]['Quantidade']
-                c1.metric(f'Keywords em comum - {dominio}',x, border=True)
-                x=df_melt[(df_melt['Concorrente']==dominio)&(df_melt['Tipo']=='Exclusivas concorrente')]['Quantidade']
-                c2.metric(f'Exclusivas concorrente - {dominio}',x, border=True)
-                x=df_melt[(df_melt['Concorrente']==dominio)&(df_melt['Tipo']=='Exclusivas cliente')]['Quantidade']
-                c3.metric(f'Exclusivas cliente',x, border=True)
-                plot_sel=df_melt
+                x=df_melt[(df_melt['Concorrente']==selec)&(df_melt['Tipo']=='Keywords em comum')]['Quantidade']
+                c1.metric(f'Keywords em comum - {selec}',x, border=True)
+                x=df_melt[(df_melt['Concorrente']==selec)&(df_melt['Tipo']=='Exclusivas concorrente')]['Quantidade']
+                c2.metric(f'Exclusivas concorrente - {selec}',x, border=True)
+                x=df_melt[(df_melt['Concorrente']==selec)&(df_melt['Tipo']=='Exclusivas cliente')]['Quantidade']
+                c3.metric(f'Exclusivas {cliente}',x, border=True)
+
 
             fog = px.sunburst(
             plot_sel,
@@ -241,59 +239,98 @@ if 'data' in st.session_state:
             )
 
             st.plotly_chart(fog)
-
-
+            st.divider()
         #--------------------CORRELAÇÃO DE TERMOS--------------------#
         if detail:
-            opt=list(range(1, 101))
-
-            i_pos, f_pos = st.select_slider(
-                "Filtre por posição",
-                options=opt,
-                value=(1, 100)
-            )
+            st.markdown('## Correlação de termos')
             st.session_state['inter'] = inter
             iinter=st.session_state['inter']
-            filtro_pos_inter= (iinter['Position']>=i_pos)&(iinter['Position']<=f_pos)
-            campos = ['Keyword','Search Volume','Position', 'URL']
-            if len(dict_concorrentes.keys())>1:                  
-                if selec != 'Todos':
-                    campos = ['Keyword','Search Volume','Position', f'Posição {selec}','URL', f'URL {selec}', 'Google']
-                    df_trato_detail(iinter[(filtro_pos_inter)&(iinter['Conc']==selec)][campos])
-                    
-                else:
-                    for i in iinter['Conc'].unique():
-                        campos.append(f'Posição {i}')
-                        campos.append(f'URL {i}')
-                    campos.append('Google')
-                    df_trato_detail(iinter[(iinter['Position']>=i_pos)&(iinter['Position']<=f_pos)][campos])
+
+            #--------------------FITROS DE SELEÇÃO--------------------#
+            c1,c2,c3 = st.columns(3)
+
+            with c1:
+                filtro_termo=st.text_input('Filtre por termos específicos')
+            with c2:
+                lista_filtro=['Cliente','Concorrente', 'Ambos']
+                quem_filtra=st.selectbox('Filtrar posições de:',lista_filtro)
+            with c3:
+                opt= list(range(1, 11))
+                opt_plus= list(range(20, 101,10))
+                opt+=opt_plus
+
+                i_pos, f_pos = st.select_slider("Filtre por posição", options=opt, value=(opt[0], opt[-1]))
+            
+            if quem_filtra =='Cliente':
+                filtro_pos_inter= (iinter['Position']>=i_pos)&(iinter['Position']<=f_pos)
+            if quem_filtra == 'Concorrente':
+                filtro_pos_inter = False
+                for i in dict_concorrentes.keys(): 
+                    filtro_pos_inter|= (iinter[f'Posição {i}']>=i_pos)&(iinter[f'Posição {i}']<=f_pos)
                     
 
             else:
-                selec = dominio
+                filtro_pos_inter = False
+                for i in dict_concorrentes.keys(): 
+                    filtro_pos_inter|= (iinter[f'Posição {i}']>=i_pos)&(iinter[f'Posição {i}']<=f_pos)
+                filtro_pos_inter|=(iinter['Position']>=i_pos)&(iinter['Position']<=f_pos)
+            campos = ['Keyword','Search Volume','Position', 'URL']
+            if filtro_termo:
+                grande_filtro = iinter[inter['Keyword'].str.contains(filtro_termo)]
+                textinho = f'Keywords contendo **{filtro_termo.upper()}** em comum com '
+            else:
+                grande_filtro = iinter
+                textinho = f'Keywords em comum com '
+                             
+            if selec != 'Todos':
                 campos = ['Keyword','Search Volume','Position', f'Posição {selec}','URL', f'URL {selec}', 'Google']
-                df_trato_detail(iinter[filtro_pos_inter][campos])
+                df_trato_detail(grande_filtro[(filtro_pos_inter)&(iinter['Conc']==selec)][campos])
+                
+            else:
+                for i in iinter['Conc'].unique():
+                    campos.append(f'Posição {i}')
+                    campos.append(f'URL {i}')
+                campos.append('Google')
+                df_trato_detail(grande_filtro[filtro_pos_inter][campos])
+                    
             if selec == 'Todos':
                 for i in list(dict_concorrentes.keys()):
                     x=len(iinter[(iinter['Conc']==i)&(filtro_pos_inter)]['Keyword'].unique())
-                    st.metric(f'Keywords em comum - {i}',x, border=True)
+                    st.metric(f'{textinho} {i}',x, border=True)
             else:
                 x=len(iinter[(iinter['Conc']==selec)&(filtro_pos_inter)]['Keyword'].unique())
-                st.metric(f'Keywords em comum - {selec}',x, border=True)
+                st.metric(f'{textinho} {selec}',x, border=True)
+            st.divider()
 
         #--------------------ANÁLISE DE TERMOS AUSENTES--------------------#               
         if insights:
+            st.markdown('## Análise de termos ausentes')
+            #--------------------FILTROS--------------------# 
             brand_filter=st.multiselect('Filtre pelo regex de marca dos seus concorrentes:',options=brand_l,default=brand_l, accept_new_options=True)
             regex_pattern = '|'.join(brand_filter)
+            exclusivo.drop([0],axis=1,inplace=True)
             filter = exclusivo[~exclusivo['Keyword'].str.contains(regex_pattern)]
+            c1,c2 = st.columns(2)
+            with c1:
+                filtro_termo_aus=st.text_input('Filtre por termos específicos')
+                if filtro_termo_aus:
+                    filter = filter[filter['Keyword'].str.contains(filtro_termo_aus)]
+            with c2:
+                opt= list(range(1, 11))
+                opt_plus= list(range(20, 101,10))
+                opt+=opt_plus
+                i_pos, f_pos = st.select_slider("Filtre por posição", options=opt, value=(opt[0], opt[-1]))
+                filtro_pos_aus= False
+                for i in dict_concorrentes.keys(): 
+                    filtro_pos_aus|= (filter[f'Posição {i}']>=i_pos)&(filter[f'Posição {i}']<=f_pos)
+                
+            
             campos = ['Keyword']
-            if len(dict_concorrentes.keys())>1:
-                if selec != 'Todos':
-                    tratar_df(filter[(filter['Conc']==selec)])
-                else:
-                    for i in dict_concorrentes.keys():
-                        campos.append(f'Posição {i}')
-                        campos.append(f'URL {i}')
-                    tratar_df(filter[campos])
+            if selec == 'Todos':
+                for i in dict_concorrentes.keys():
+                    campos.append(f'Posição {i}')
+                    campos.append(f'URL {i}')
+                tratar_df(filter[filtro_pos_aus][campos])
+                
             else:
-                    tratar_df(filter)
+                tratar_df(filter[filtro_pos_aus][(filter['Conc']==selec)])
