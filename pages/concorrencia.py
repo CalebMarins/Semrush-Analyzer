@@ -196,7 +196,7 @@ if 'data' in st.session_state:
         if len(dict_concorrentes.keys())>1:
             st.sidebar.divider()
             lista_conc.append('Todos')
-            selec=st.sidebar.selectbox('Selecione o concorrente para ver no detalhe',lista_conc)
+            selec=st.sidebar.selectbox('Selecione o concorrente para ver no detalhe',lista_conc, index=len(lista_conc)-1)
             st.sidebar.divider()
         else:
             selec = dominio
@@ -341,4 +341,3 @@ if 'data' in st.session_state:
             for i in dict_concorrentes.keys():
                 x=len(filter[(filter['Conc']==i)&(filtro_pos_aus)]['Keyword'].unique())
                 st.metric(f'{texto_metric} :blue[**{i}**] nas posições :blue[**{i_pos} a {f_pos}**]',x, border=True)
-            
