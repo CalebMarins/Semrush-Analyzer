@@ -75,7 +75,7 @@ if up_file is not None:
 
     
     st.session_state['data'] = df
-lista_detalhe=[ 'URL','Position','Keyword Intents','ai']
+lista_detalhe=[ 'URL','Position','Keyword Intents','Posiciona para AI']
 if 'data' in st.session_state:       
     df_import  = st.session_state['data']
     #buscando o domínio e predefenindo como marca
