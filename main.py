@@ -247,7 +247,6 @@ if 'data' in st.session_state:
             
             df_import['marca'] = (df_import['Keyword'].str.contains(brand_input)).astype(str)
             tratar_df(df_import.groupby('marca').agg({'Keyword':['count',lambda x:round((x.count()/df_import['Keyword'].count())*100,2)]}).rename(columns={'<lambda_0>': 'Porcentagem'}))
-            lista_detalhe.append('marca')
             tratar_df(df_import.groupby('marca').agg({'Traffic (%)':'sum', 'Keyword':['count',lambda x: round((x.count()/df_import['Keyword'].count())*100,2)], 'Position':'mean' }).round({('Position','mean'):2}).rename(columns={'<lambda_0>': 'Porcentagem'}))
         if not brand_input:
             df_import['marca'] = '-'
